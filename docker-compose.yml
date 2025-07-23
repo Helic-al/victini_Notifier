@@ -1,0 +1,13 @@
+version: '3'
+services:
+  python3:
+    restart: always
+    build: .
+    container_name: 'victiniNotifier'
+    working_dir: '/root/'
+    tty: true
+    volumes:
+      - ./src:/root/src
+  api:
+    env_file:
+      -./.env

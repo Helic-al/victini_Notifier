@@ -1,0 +1,6 @@
+requests
+pandas
+beautifulsoup4
+selenium == 4.34.2
+boto3
+dotenv
