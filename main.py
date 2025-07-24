@@ -30,7 +30,7 @@ def handler(event, content):
     options.add_argument('--no-sandbox')
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1280,1696")
-    options.add_argument("--single-process")
+    #options.add_argument("--single-process")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-dev-tools")
     options.add_argument("--no-zygote")
@@ -118,9 +118,13 @@ def handler(event, content):
     bucket_name = 'victini-detector'
     key = 'new_DF.csv'
     s3_object = s3.Object(bucket_name, key)
-
+    
     #一回前のデータをold_dfとして読み込む
-    old_df = pd.read_csv(s3_object.get()['Body'])
+    #csvが白紙な場合のEmptyDataErrorに対応させる
+    try:
+        old_df = pd.read_csv(s3_object.get()['Body'])
+    except pd.errors.EmptyDataError:
+        old_df = pd.DataFrame()
 
     dotenv_path = join(dirname(abspath("__file__")), '.env')
     load_dotenv(dotenv_path, verbose=True)
