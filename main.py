@@ -106,6 +106,9 @@ def handler(event, content):
             #rightはステータスと店名の情報を含む
             rights = topEntry.find_all('div', attrs={'class': 'right'})
             
+            #urlも取得する
+            urls = topEntry.find_all('a', attrs={'class': 'eventListItem'})
+
             dfmaker(lefts, j+1)
 
     s3 = boto3.resource('s3')
@@ -116,23 +119,6 @@ def handler(event, content):
     #一回前のデータをold_dfとして読み込む
     old_df = pd.read_csv(s3_object.get()['Body'])
 
-    #新旧データフレームを結合、重複していない要素を抽出
-    df_union = pd.concat([old_df, new_df], axis=0, ignore_index=True)
-    news = df_union[~df_union.duplicated(keep=False)]
-
-    print(news)
-
-    #次回の実行で使用するcsvをs3へ保存
-    result = s3_object.put(Body=new_df.to_csv(None, index=None).encode('utf-8'))
-
-
-    print(news)
-    print('===================')
-    for new in news.itertuples():
-        print(new)
-
-
-    #newsの要素についてDiscordに通知
     dotenv_path = join(dirname(abspath("__file__")), '.env')
     load_dotenv(dotenv_path, verbose=True)
 
@@ -141,25 +127,37 @@ def handler(event, content):
     headers = {
         'Content-Type': 'application/json'
     }
+   
+    for new_row in new_df.itertuples():
+        found = False
+        for old_row in old_df.itertuples():
+            if old_row[1:7] == new_row[1:7]:
+                found = True
+        if found == False:
+            #newsの要素についてDiscordに通知
+            name = new_row.pref + new_row.shop
+            value = new_row.date + new_row.time
+            message = {
 
-    for new in news.itertuples():
-        name = new.pref + new.shop
-        value = new.date + new.time
-        message = {
+            'embeds': [
+                {
+                    'title': new_row.title,
+                    'description':'先着受付中になったお店があります！',
+                    'color' : 0x00ff00,
+                    'fields':[
+                        {'name': name, 'value': value},
+                        {'name': new_row.url, 'value': ''}
+                    ]
+                }
+            ]
+        }
+            response = requests.post(webhook_url, data=json.dumps(message), headers=headers)
+    
+    # print(news)
 
-        'embeds': [
-            {
-                'title': new.title,
-                'description':'先着受付中になったお店があります！',
-                'color' : 0x00ff00,
-                'fields':[
-                    {'name': name, 'value': value,},
-                    {'name':new.url, 'value': ''}
-                ]
-            }
-        ]
-    }
-        response = requests.post(webhook_url, data=json.dumps(message), headers=headers)
+    #次回の実行で使用するcsvをs3へ保存
+    result = s3_object.put(Body=new_df.to_csv(None, index=None).encode('utf-8'))
+
     driver.quit() #ver2で追加、ウェブドライバーの終了処理
 
 
