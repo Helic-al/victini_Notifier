@@ -51,9 +51,12 @@ def handler(event, content):
     topEntry = soup.find('div', attrs={'class': 'searchList'})
 
     #検索結果のページ数を取得
-    pages = soup.find('div', attrs = {'class': 'searchResult'}).text
-    pages = re.findall(r'\d+', pages)
-    page_num = int(pages[1])
+    if pages := soup.find('div', attrs = {'class': 'searchResult'}):
+        pages = pages.text
+        pages = re.findall(r'\d+', pages)
+        page_num = int(pages[1])
+    else:
+        page_num = 1
 
     #leftは日時と県の情報を含む
     lefts = topEntry.find_all('div', attrs={'class': 'left'})
